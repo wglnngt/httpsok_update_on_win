@@ -1,6 +1,7 @@
 .swp
 uuid
 token
+debug_*.*
 *.key
 *.pem
 _backup/
