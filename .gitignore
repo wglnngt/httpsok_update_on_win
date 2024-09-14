@@ -1,10 +1,12 @@
-.swp
+*.swp
+*.key
+*.pem
+*.pfx
+*.log
 uuid
 token
 target.conf
 domain.conf
 debug_*.*
-*.key
-*.pem
 _backup/
 .gitignore
