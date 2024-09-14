@@ -60,7 +60,7 @@ function main() {
 
 	# Import pfx to cert store
 	Write-Log "Step 4: Import the new certification to cert store."
-	certutil -f -p $env:mypass -importPFX $PWD\tme.tmvmc.cn.pfx
+	certutil -f -p $env:mypass -importPFX $PWD\${Script:UPDATE_DOMAIN}.pfx
 
 	# ReBind certification of web site
 	Write-Log "Step 5: Rebind the certification to default web site as https protocol."
