@@ -1,7 +1,10 @@
 .swp
 uuid
 token
+target.conf
+domain.conf
 debug_*.*
 *.key
 *.pem
 _backup/
+.gitignore
