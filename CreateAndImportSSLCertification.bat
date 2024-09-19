@@ -43,7 +43,7 @@ function main() {
 	Write-Log "Step 1: Backup the old pfx file."
 	if (Test-Path "${Script:UPDATE_DOMAIN}.pfx") {
 		$strDT = $(Get-Date -Format "yyyyMMddHHmmss").ToString()
-		mv tme.tmvmc.cn.pfx "backup_${strDT}_${Script:UPDATE_DOMAIN}.pfx"
+		mv ${Script:UPDATE_DOMAIN}.pfx "backup_${strDT}_${Script:UPDATE_DOMAIN}.pfx"
 	}
 
 	# Export cert as pkcs12 file
@@ -51,7 +51,7 @@ function main() {
 	$env:mypass = "123654"
 	#$strSrcFolder = Read-Host "Input the source cert file folder"
 	$strSrcFolder = "$PWD\.httpsok"
-	openssl pkcs12 -export -out tme.tmvmc.cn.pfx -inkey ${strSrcFolder}\cert.key -in ${strSrcFolder}\cert.pem -passout env:mypass
+	openssl pkcs12 -export -out ${Script:UPDATE_DOMAIN}.pfx -inkey ${strSrcFolder}\cert.key -in ${strSrcFolder}\cert.pem -passout env:mypass
 
 	$strWildCharDomain = ${Script:UPDATE_DOMAIN} -replace "^[^.]*\.", "."
 	# Delete old pfx in local machine
