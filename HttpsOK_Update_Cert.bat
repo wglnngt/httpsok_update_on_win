@@ -8,8 +8,8 @@ powershell -Command "Set-ExecutionPolicy -Scope Process Bypass; . %tmp%\%~n0.ps1
 goto :EOF
 "@
 
-$PROJECT_HOME = "$PWD\.httpsok"
-$PROJECT_BACKUP = "${PROJECT_HOME}\_backup"
+$PROJECT_HOME = ".httpsok"
+$PROJECT_BACKUP = "${PROJECT_HOME}/_backup"
 
 $HTTPSOK_HOME_URL = "https://httpsok.com/"
 $BASE_API_URL = "https://api.httpsok.com/v1/nginx"
@@ -20,8 +20,8 @@ $MODE = "normal"
 $HTTPSOK_TOKEN = ""
 $TRACE_ID = ""
 $HTTPSOK_UUID = ""
-$HTTPSOK_UUID_FILE = "${PROJECT_HOME}\uuid"
-$HTTPSOK_TOKEN_FILE = "${PROJECT_HOME}\token"
+$HTTPSOK_UUID_FILE = "${PROJECT_HOME}/uuid"
+$HTTPSOK_TOKEN_FILE = "${PROJECT_HOME}/token"
 $HTTPSOK_PREPARSE = ""
 $UPDATE_DOMAIN = ""
 
@@ -35,7 +35,7 @@ function pause() {
 function Write-Log() {
 	Param( $Msg )
 
-	$strLogFile = "${WorkDir}\history.log"
+	$strLogFile = "${WorkDir}/history.log"
 	$strMsg = "$(Get-Date -Format "yyyy-MM-dd HH:mm:ss") $Msg"
 	Write-Host $strMsg
 	$strMsg | Out-File $strLogFile -Append -Enc UTF8
@@ -73,10 +73,11 @@ function InitHttp() {
 		"Content-Type" = "text/plain"
 		"httpsok-token" = ${Script:HTTPSOK_TOKEN}
 		"httpsok-version" = ${Script:VER}
-		"os-name" = "ubuntu"
-		"nginx-version" = "1.7.11.3"
-		"nginx-config-home" = "."
+		"os-name" = "Ubuntu 18.04.5 LTS"
+		"nginx-version" = "nginx/1.24.0"
+		"nginx-config-home" = "${Script:PROJECT_HOME}"
 		"nginx-config" = "${Script:PROJECT_HOME}/target.conf"
+		#"nginx-bin" = "nginx"
 		"trace-id" = ${Script:TRACE_ID}
 		"mode" = ${Script:MODE}
 		"httpsok-uuid" = ${Script:HTTPSOK_UUID}
@@ -110,7 +111,7 @@ function PostAPI() {
 	$strUrl = "${Script:BASE_API_URL}$Action"
 	Write-Log "Current api:`n`t$strUrl"
 	foreach ($key in ${Script:HTTPSOK_HEADER}.keys) {
-		$strHeader += "-H `"${key}:$(${Script:HTTPSOK_HEADER}[$key])`" "
+		$strHeader += "-H `"${key}: $(${Script:HTTPSOK_HEADER}[$key])`" "
 	}
 	$strCMD = "curl.exe -s -X POST --data-binary `"$BodyContent`" $strHeader `"$strUrl`""
 	#Write-Log "Execution: $strCMD"
@@ -129,7 +130,7 @@ function PostAPI2() {
 	$strUrl = "${Script:BASE_API_URL}$Action"
 	Write-Log "Current api:`n`t$strUrl"
 	foreach ($key in ${Script:HTTPSOK_HEADER}.keys) {
-		$strHeader += "-H `"${key}:$(${Script:HTTPSOK_HEADER}[$key])`" "
+		$strHeader += "-H `"${key}: $(${Script:HTTPSOK_HEADER}[$key])`" "
 	}
 	$strCMD = "curl.exe -s -X POST --data-binary `"@$BodyContent`" $strHeader `"$strUrl`""
 	Write-Log "Execution: $strCMD"
@@ -148,7 +149,7 @@ function PutAPI() {
 	$strUrl = "${Script:BASE_API_URL}$Action"
 	Write-Log "Current api:`n`t$strUrl"
 	foreach ($key in ${Script:HTTPSOK_HEADER}.keys) {
-		$strHeader += "-H `"${key}:$(${Script:HTTPSOK_HEADER}[$key])`" "
+		$strHeader += "-H `"${key}: $(${Script:HTTPSOK_HEADER}[$key])`" "
 	}
 	$strCMD = "curl.exe -s -X PUT --data-binary `"$BodyContent`" $strHeader `"$strUrl`""
 	#Write-Log "Execution: $strCMD"
@@ -167,7 +168,7 @@ function UploadAPI() {
 	$strUrl = "${Script:BASE_API_URL}/upload?code=$Code"
 	Write-Log "Current api:`n`t$strUrl"
 	foreach ($key in ${Script:HTTPSOK_HEADER}.keys) {
-		$strHeader += "-H `"${key}:$(${Script:HTTPSOK_HEADER}[$key])`" "
+		$strHeader += "-H `"${key}: $(${Script:HTTPSOK_HEADER}[$key])`" "
 	}
 	$strCMD = "curl.exe -s -X POST -H `"Content-Type: multipart/form-data`" -F `"cert=@$File1`" -F `"certKey=@$File2`" $strHeader `"$strUrl`""
 	#Write-Log "Execution:`n`t$strCMD"
@@ -214,7 +215,7 @@ function GetUUID() {
 		}
 	}
 
-	${Script:HTTPSOK_UUID} = $([GUID]::NewGuid() -Replace "-", "")
+	${Script:HTTPSOK_UUID} = $([GUID]::NewGuid().Guid)
 	${Script:HTTPSOK_UUID} | Out-File ${Script:HTTPSOK_UUID_FILE} -Enc UTF8 -Force
 }
 
@@ -228,7 +229,7 @@ function CheckToken() {
 }
 
 function PreParse() {
-	$oRet = $(PostAPI2 -Action "/preparse" -BodyContent "${Script:PROJECT_HOME}\target.conf")
+	$oRet = $(PostAPI2 -Action "/preparse" -BodyContent "${Script:PROJECT_HOME}/target.conf")
 
 	return $oRet
 }
@@ -268,13 +269,15 @@ function CheckCert() {
 	$strCode = $arrParam[0]
 	$strCert = $arrParam[1]
 	$strCertKey = $arrParam[2]
+	Write-Host "Check -Depth 60 -Code `"$strCode`" -Cert `"$strCert`" -CertKey `"$strCertKey`""
+	pause
 
-	$oRet = Check 60 "$strCode" "$strCert" "$strCertKey"
+	$oRet = Check -Depth 60 -Code "$strCode" -Cert "$strCert" -CertKey "$strCertKey"
+	$strRet = ""
 	try {
 		$strRet = $($oRet.Split("`n") | ?{ $_ -like "*latest_code*" }).Split(" ")[1]
 	} catch {
-		Write-Log "CheckCert failed: $_.Exception.Message"
-		return
+		#Write-Log "CheckCert failed: $($_.Exception.Message)"
 	}
 
 	return $strRet
@@ -318,10 +321,10 @@ function Check() {
 				mv "$strTmpCertKey" "$CertKey"
 
 				Write-Log "$Code $Cert : New cert updated"
-				RemoteLog "cert-updated-success" "$Code" "New cert updated"
+				RemoteLog -Type "cert-updated-success" -Code "$Code" -Message "New cert updated"
 			} else {
 				Write-Log "$Code $Cert : New cert update failed(md5 not match)"
-				RemoteLog "cert-updated-failed" "$Code" "New cert update failed(md5 not match):cert_file_md5=$strCertFileMd5,tmp_cert_md5=$strTmpCertFileMd5,cert_key_file_md5=$strCertKeyMd5,tmp_cert_key_md5=$strTmpCertKeyMd5"
+				RemoteLog -Type "cert-updated-failed" -Code "$Code" -Message "New cert update failed(md5 not match):cert_file_md5=$strCertFileMd5,tmp_cert_md5=$strTmpCertFileMd5,cert_key_file_md5=$strCertKeyMd5,tmp_cert_key_md5=$strTmpCertKeyMd5"
 			}
 		}
 		"2" {
@@ -331,7 +334,6 @@ function Check() {
 		}
 		"3" {
 			Write-Log "$Code $Cert : Cert valid, no need to update"
-			#GetAPI "/cert/$Code.pfx" "${Script:PROJECT_HOME}/cert_${Code}.pfx"
 		}
 		"12" {
 			Write-Error "$Code $Cert : Code invalid"
@@ -347,7 +349,7 @@ function Check() {
 
 function RemoteLog() {
 	Param ( $Type, $Code, $Message )
-	$oRet = PutAPI "/log/$Type?code=$Code" "$Message"
+	$oRet = PutAPI "/log/${Type}?code=${Code}" "${Message}"
 
 	return $oRet
 }
@@ -384,7 +386,7 @@ function main() {
 	${Script:HTTPSOK_PREPARSE} = PreParse
 	Write-Log "Preparse result:`n`t${Script:HTTPSOK_PREPARSE}"
 	Write-Log "`n`n"
-	#pause
+	pause
 
 	$oRet = UploadCert ${Script:HTTPSOK_PREPARSE}
 	Write-Log "Upload result:`n`t$oRet"
@@ -399,7 +401,7 @@ function main() {
 	$oRet = CheckCert ${Script:HTTPSOK_PREPARSE}
 	Write-Log "CheckCert result:`n`t$oRet"
 	Write-Log "`n`n"
-	pause
+	#pause
 	
 	Write-Log "Update ssl certification to IIS component..."
 	Start CreateAndImportSSLCertification.bat

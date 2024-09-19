@@ -1,4 +1,4 @@
-Param ( $WorkDir )
+Param ( $WorkDir, $Runas )
 
 $oScript = @"
 @echo off
@@ -36,6 +36,15 @@ function Write-Log() {
 function main() {
 	Param ( $WorkRoot )
 	pushd $WorkRoot
+	if (${Script:Runas} -eq "" -or ${Script:Runas} -eq $null) {
+		Write-Log "Step 0: Run as administrator."
+		$oShell = New-Object -ComObject Shell.Application
+		$strScriptFile = $PSCommandPath
+		$strParamExec = "-Command `"Set-ExecutionPolicy -Scope Process Bypass; . $strScriptFile -WorkDir $PWD -Runas runas`" "
+		Write-Log $strParamExec
+		$oShell.ShellExecute("powershell", $strParamExec, "", "runas", 1)
+		exit
+	}
 
 	DomainCheck
 
@@ -47,11 +56,11 @@ function main() {
 	}
 
 	# Export cert as pkcs12 file
-	Write-Log "Step 2: Export the new cert to pfx file."
+	Write-Log "Step 2: Export the new cert to pfx file: ${Script:UPDATE_DOMAIN}.pfx"
 	$env:mypass = "123654"
 	#$strSrcFolder = Read-Host "Input the source cert file folder"
-	$strSrcFolder = "$PWD\.httpsok"
-	openssl pkcs12 -export -out ${Script:UPDATE_DOMAIN}.pfx -inkey ${strSrcFolder}\cert.key -in ${strSrcFolder}\cert.pem -passout env:mypass
+	$strSrcFolder = "${Script:PROJECT_HOME}"
+	openssl pkcs12 -export -out "${Script:UPDATE_DOMAIN}.pfx" -inkey "${strSrcFolder}\cert.key" -in "${strSrcFolder}\cert.pem" -passout env:mypass
 
 	$strWildCharDomain = ${Script:UPDATE_DOMAIN} -replace "^[^.]*\.", "."
 	# Delete old pfx in local machine
