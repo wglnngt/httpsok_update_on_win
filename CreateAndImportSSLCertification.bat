@@ -52,7 +52,7 @@ function main() {
 	Write-Log "Step 1: Backup the old pfx file."
 	if (Test-Path "${Script:UPDATE_DOMAIN}.pfx") {
 		$strDT = $(Get-Date -Format "yyyyMMddHHmmss").ToString()
-		mv ${Script:UPDATE_DOMAIN}.pfx "backup_${strDT}_${Script:UPDATE_DOMAIN}.pfx"
+		mv "${Script:UPDATE_DOMAIN}.pfx" "backup_${strDT}_${Script:UPDATE_DOMAIN}.pfx"
 	}
 
 	# Export cert as pkcs12 file
