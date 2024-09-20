@@ -92,10 +92,19 @@ function GetAPI() {
 	$oRet = $null
 	$strUrl = "${Script:BASE_API_URL}$Action"
 	Write-Log "Current api:`n`t$strUrl"
+	foreach ($key in ${Script:HTTPSOK_HEADER}.keys) {
+		$strHeader += "-H `"${key}: $(${Script:HTTPSOK_HEADER}[$key])`" "
+	}
 	if ($SaveFile -ne $null) {
-		$oRet = Invoke-RestMethod -Method GET -Uri $strUrl -Header ${Script:HTTPSOK_HEADER} -OutFile $SaveFile
+		#$oRet = Invoke-RestMethod -Method GET -Uri $strUrl -Header ${Script:HTTPSOK_HEADER} -OutFile $SaveFile
+		$strCMD = "curl.exe -sk -X GET $strHeader `"$strUrl`" -o $SaveFile"
+		Write-Log "Execution: $strCMD"
+		$oRet = Invoke-Expression $strCMD
 	} else {
-		$oRet = Invoke-RestMethod -Method GET -Uri $strUrl -Header ${Script:HTTPSOK_HEADER}
+		#$oRet = Invoke-RestMethod -Method GET -Uri $strUrl -Header ${Script:HTTPSOK_HEADER}
+		$strCMD = "curl.exe -sk -X GET $strHeader `"$strUrl`" "
+		Write-Log "Execution: $strCMD"
+		$oRet = Invoke-Expression $strCMD
 	}
 	#Write-Log $oRet
 
@@ -113,7 +122,7 @@ function PostAPI() {
 	foreach ($key in ${Script:HTTPSOK_HEADER}.keys) {
 		$strHeader += "-H `"${key}: $(${Script:HTTPSOK_HEADER}[$key])`" "
 	}
-	$strCMD = "curl.exe -s -X POST --data-binary `"$BodyContent`" $strHeader `"$strUrl`""
+	$strCMD = "curl.exe -sk -X POST --data-binary `"$BodyContent`" $strHeader `"$strUrl`""
 	#Write-Log "Execution: $strCMD"
 	$oRet = Invoke-Expression $strCMD
 	#Write-Log $oRet
@@ -132,7 +141,7 @@ function PostAPI2() {
 	foreach ($key in ${Script:HTTPSOK_HEADER}.keys) {
 		$strHeader += "-H `"${key}: $(${Script:HTTPSOK_HEADER}[$key])`" "
 	}
-	$strCMD = "curl.exe -s -X POST --data-binary `"@$BodyContent`" $strHeader `"$strUrl`""
+	$strCMD = "curl.exe -sk -X POST --data-binary `"@$BodyContent`" $strHeader `"$strUrl`""
 	Write-Log "Execution: $strCMD"
 	$oRet = Invoke-Expression $strCMD
 	#Write-Log $oRet
@@ -151,7 +160,7 @@ function PutAPI() {
 	foreach ($key in ${Script:HTTPSOK_HEADER}.keys) {
 		$strHeader += "-H `"${key}: $(${Script:HTTPSOK_HEADER}[$key])`" "
 	}
-	$strCMD = "curl.exe -s -X PUT --data-binary `"$BodyContent`" $strHeader `"$strUrl`""
+	$strCMD = "curl.exe -sk -X PUT --data-binary `"$BodyContent`" $strHeader `"$strUrl`""
 	#Write-Log "Execution: $strCMD"
 	$oRet = Invoke-Expression $strCMD
 	#Write-Log $oRet
@@ -170,7 +179,7 @@ function UploadAPI() {
 	foreach ($key in ${Script:HTTPSOK_HEADER}.keys) {
 		$strHeader += "-H `"${key}: $(${Script:HTTPSOK_HEADER}[$key])`" "
 	}
-	$strCMD = "curl.exe -s -X POST -H `"Content-Type: multipart/form-data`" -F `"cert=@$File1`" -F `"certKey=@$File2`" $strHeader `"$strUrl`""
+	$strCMD = "curl.exe -sk -X POST -H `"Content-Type: multipart/form-data`" -F `"cert=@$File1`" -F `"certKey=@$File2`" $strHeader `"$strUrl`""
 	#Write-Log "Execution:`n`t$strCMD"
 	$oRet = Invoke-Expression $strCMD
 	#Write-Log $oRet
@@ -371,6 +380,8 @@ function CreateCertFile() {
 function main() {
 	Param ( $WorkRoot )
 	pushd "$WorkRoot"
+
+	[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12 -bor [System.Net.SecurityProtocolType]::Tls11
 
 	$nRet = CheckToken
 	if ($nRet -eq 0) {
