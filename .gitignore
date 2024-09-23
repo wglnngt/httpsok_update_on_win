@@ -3,6 +3,7 @@
 *.pem
 *.pfx
 *.log
+*.ps1
 uuid
 token
 target.conf
