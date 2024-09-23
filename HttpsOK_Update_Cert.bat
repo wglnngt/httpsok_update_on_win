@@ -279,7 +279,7 @@ function CheckCert() {
 	$strCert = $arrParam[1]
 	$strCertKey = $arrParam[2]
 	Write-Host "Check -Depth 60 -Code `"$strCode`" -Cert `"$strCert`" -CertKey `"$strCertKey`""
-	pause
+	#pause
 
 	$oRet = Check -Depth 60 -Code "$strCode" -Cert "$strCert" -CertKey "$strCertKey"
 	$strRet = ""
@@ -397,7 +397,7 @@ function main() {
 	${Script:HTTPSOK_PREPARSE} = PreParse
 	Write-Log "Preparse result:`n`t${Script:HTTPSOK_PREPARSE}"
 	Write-Log "`n`n"
-	pause
+	#pause
 
 	$oRet = UploadCert ${Script:HTTPSOK_PREPARSE}
 	Write-Log "Upload result:`n`t$oRet"
