@@ -1,4 +1,5 @@
 # httpsok_update_on_win
+
 Update SSL cert based on httpsok server automatically on Windows server via PowerShell script.
 
 Main entry:
@@ -7,3 +8,5 @@ Main entry:
 
 IIS Web Site update (based on httpsok update):
 - CreateAndImportSSLCertification.bat
+
+![Httpsok_Update](images/httpsok_update.png)
