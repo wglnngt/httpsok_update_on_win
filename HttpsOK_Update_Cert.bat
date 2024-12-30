@@ -8,6 +8,8 @@ powershell -Command "Set-ExecutionPolicy -Scope Process Bypass; . %tmp%\%~n0.ps1
 goto :EOF
 "@
 
+Add-Type -AssemblyName System.Net.Http
+
 $PROJECT_HOME = ".httpsok"
 $PROJECT_BACKUP = "${PROJECT_HOME}/_backup"
 
@@ -96,15 +98,19 @@ function GetAPI() {
 		$strHeader += "-H `"${key}: $(${Script:HTTPSOK_HEADER}[$key])`" "
 	}
 	if ($SaveFile -ne $null) {
-		#$oRet = Invoke-RestMethod -Method GET -Uri $strUrl -Header ${Script:HTTPSOK_HEADER} -OutFile $SaveFile
-		$strCMD = "curl.exe -sk -X GET $strHeader `"$strUrl`" -o $SaveFile"
-		Write-Log "Execution: $strCMD"
-		$oRet = Invoke-Expression $strCMD
+		#$strCMD = "curl.exe -sk -X GET $strHeader `"$strUrl`" -o $SaveFile"
+		#Write-Log "Execution: $strCMD"
+		#$oRet = Invoke-Expression $strCMD
+		
+		Write-Log "Execution: Invoke-RestMethod -Method GET -Uri $strUrl -Headers `${Script:HTTPSOK_HEADER} -OutFile $SaveFile"
+		$oRet = Invoke-RestMethod -Method GET -Uri $strUrl -Headers ${Script:HTTPSOK_HEADER} -OutFile $SaveFile
 	} else {
-		#$oRet = Invoke-RestMethod -Method GET -Uri $strUrl -Header ${Script:HTTPSOK_HEADER}
-		$strCMD = "curl.exe -sk -X GET $strHeader `"$strUrl`" "
-		Write-Log "Execution: $strCMD"
-		$oRet = Invoke-Expression $strCMD
+		#$strCMD = "curl.exe -sk -X GET $strHeader `"$strUrl`" "
+		#Write-Log "Execution: $strCMD"
+		#$oRet = Invoke-Expression $strCMD
+
+		Write-Log "Execution: Invoke-RestMethod -Method GET -Uri $strUrl -Headers `${Script:HTTPSOK_HEADER}"
+		$oRet = Invoke-RestMethod -Method GET -Uri $strUrl -Headers ${Script:HTTPSOK_HEADER}
 	}
 	#Write-Log $oRet
 
@@ -122,9 +128,12 @@ function PostAPI() {
 	foreach ($key in ${Script:HTTPSOK_HEADER}.keys) {
 		$strHeader += "-H `"${key}: $(${Script:HTTPSOK_HEADER}[$key])`" "
 	}
-	$strCMD = "curl.exe -sk -X POST --data-binary `"$BodyContent`" $strHeader `"$strUrl`""
+	#$strCMD = "curl.exe -sk -X POST --data-binary `"$BodyContent`" $strHeader `"$strUrl`""
 	#Write-Log "Execution: $strCMD"
-	$oRet = Invoke-Expression $strCMD
+	#$oRet = Invoke-Expression $strCMD
+
+	Write-Log "Execution: Invoke-WebRequest -Method POST -Body $BodyContent -Headers `${Script:HTTPSOK_HEADER} -Uri $strUrl"
+	$oRet = $(Invoke-WebRequest -Method POST -Body "$BodyContent" -Headers ${Script:HTTPSOK_HEADER} -Uri "$strUrl").Content
 	#Write-Log $oRet
 
 	return $oRet
@@ -141,9 +150,12 @@ function PostAPI2() {
 	foreach ($key in ${Script:HTTPSOK_HEADER}.keys) {
 		$strHeader += "-H `"${key}: $(${Script:HTTPSOK_HEADER}[$key])`" "
 	}
-	$strCMD = "curl.exe -sk -X POST --data-binary `"@$BodyContent`" $strHeader `"$strUrl`""
-	Write-Log "Execution: $strCMD"
-	$oRet = Invoke-Expression $strCMD
+	#$strCMD = "curl.exe -sk -X POST --data-binary `"@$BodyContent`" $strHeader `"$strUrl`""
+	#Write-Log "Execution: $strCMD"
+	#$oRet = Invoke-Expression $strCMD
+
+	Write-Log "Execution: Invoke-WebRequest -Method POST -InFile $PWD/$BodyContent -Headers `${Script:HTTPSOK_HEADER} -Uri $strUrl"
+	$oRet = $(Invoke-WebRequest -Method POST -InFile "$PWD/$BodyContent" -Headers ${Script:HTTPSOK_HEADER} -Uri "$strUrl").Content
 	#Write-Log $oRet
 
 	return $oRet
@@ -160,9 +172,12 @@ function PutAPI() {
 	foreach ($key in ${Script:HTTPSOK_HEADER}.keys) {
 		$strHeader += "-H `"${key}: $(${Script:HTTPSOK_HEADER}[$key])`" "
 	}
-	$strCMD = "curl.exe -sk -X PUT --data-binary `"$BodyContent`" $strHeader `"$strUrl`""
+	#$strCMD = "curl.exe -sk -X PUT --data-binary `"$BodyContent`" $strHeader `"$strUrl`""
 	#Write-Log "Execution: $strCMD"
-	$oRet = Invoke-Expression $strCMD
+	#$oRet = Invoke-Expression $strCMD
+
+	Write-Log "Invoke-WebRequest -Method PUT -Body $BodyContent -Headers `${Script:HTTPSOK_HEADER} -Url $strUrl"
+	$oRet = $(Invoke-WebRequest -Method PUT -Body $BodyContent -Headers ${Script:HTTPSOK_HEADER} -Url "$strUrl").Content
 	#Write-Log $oRet
 
 	return $oRet
@@ -179,9 +194,60 @@ function UploadAPI() {
 	foreach ($key in ${Script:HTTPSOK_HEADER}.keys) {
 		$strHeader += "-H `"${key}: $(${Script:HTTPSOK_HEADER}[$key])`" "
 	}
-	$strCMD = "curl.exe -sk -X POST -H `"Content-Type: multipart/form-data`" -F `"cert=@$File1`" -F `"certKey=@$File2`" $strHeader `"$strUrl`""
+	#$strCMD = "curl.exe -sk -X POST -H `"Content-Type: multipart/form-data`" -F `"cert=@$File1`" -F `"certKey=@$File2`" $strHeader `"$strUrl`""
 	#Write-Log "Execution:`n`t$strCMD"
-	$oRet = Invoke-Expression $strCMD
+	#$oRet = Invoke-Expression $strCMD
+
+	Write-Log "In Param 1: $Code"
+	Write-Log "In Param 2: $File1"
+	Write-Log "In Param 3: $File2"
+
+	$oUTF8 = [Text.Encoding]::UTF8
+	 
+	# boundary标记，用于区分多个文件
+	$boundary = [System.Guid]::NewGuid().ToString(); 
+	$strContentType = "multipart/form-data; charset=utf-8; boundary=${boundary}"
+	${Script:HTTPSOK_HEADER}["Content-Type"] = $strContentType
+	 
+	# 拼接boundary与文件字节
+	$strSplit = "--${boundary}"
+	$oBody = @()
+
+	$arrCertBin = $(Cat $File1 -Enc Byte)
+	$arrCertKeyBin = $(Cat $File2 -Enc Byte)
+
+	# 组装cert.pem文件信息
+	$arrLinesCert = @(
+		$strSplit
+		"Content-Disposition: form-data; name=`"cert`"; filename=`"$(Split-Path -Leaf ${File1})`""
+		"Content-Type: application/octet-stream"
+		""
+	)
+	$oBody += $oUTF8.GetBytes($($arrLinesCert -Join "`r`n"))
+	$oBody += $oUTF8.GetBytes("`r`n")
+	$oBody += $arrCertBin
+	$oBody += $oUTF8.GetBytes("`r`n")
+
+	# 组装cert.key文件信息
+	$arrLinesKey = @(
+		$strSplit
+		"Content-Disposition: form-data; name=`"certKey`"; filename=`"$(Split-Path -Leaf ${File2})`""
+		"Content-Type: application/octet-stream"
+		""
+	)
+	$oBody += $oUTF8.GetBytes($($arrLinesKey -Join "`r`n"))
+	$oBody += $oUTF8.GetBytes("`r`n")
+	$oBody += $arrCertKeyBin
+	$oBody += $oUTF8.GetBytes("`r`n")
+
+	# 组装结尾信息
+	$oBody += $oUTF8.GetBytes("${strSplit}--")
+	$oBody += $oUTF8.GetBytes("`r`n")
+	[IO.File]::WriteAllBytes("${Env:Temp}\httpsok_send.bin", $oBody)
+
+	#pause
+	Write-Log "Execution: Invoke-WebRequest -Method POST -InFile `"${Env:Temp}\httpsok_send.bin`" -Headers `${Script:HTTPSOK_HEADER} -Uri $strUrl"
+	$oRet = $(Invoke-WebRequest -Method POST -InFile "${Env:Temp}\httpsok_send.bin" -Headers ${Script:HTTPSOK_HEADER} -Uri "$strUrl").Content
 	#Write-Log $oRet
 
 	return $oRet
@@ -247,9 +313,9 @@ function UploadCert() {
 	Param( $PreParse )
 
 	$arrParam = $PreParse.Split(",")
-	$strCode = $arrParam[0]
-	$strCert = $arrParam[1]
-	$strCertKey = $arrParam[2]
+	$strCode = $arrParam[0].Trim()
+	$strCert = $arrParam[1].Trim()
+	$strCertKey = $arrParam[2].Trim()
 
 	$oRet = UploadAPI -Code $strCode -File1 $strCert -File2 $strCertKey
 
