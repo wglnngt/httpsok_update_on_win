@@ -1,11 +1,11 @@
 Param ( $WorkDir, $Runas )
 
 $oScript = @"
-@echo off
-cls
->%tmp%\%~n0.ps1 more +0 %~s0
-powershell -Command "Set-ExecutionPolicy -Scope Process Bypass; . %tmp%\%~n0.ps1 -WorkDir '%~dp0'"
-goto :EOF
+    @echo off
+    cls
+    >%tmp%\%~n0.ps1 more +0 %~s0
+    powershell -ExecutionPolicy Remotesigned -File %tmp%\%~n0.ps1 %~dp0
+    goto :EOF
 "@
 
 $PROJECT_HOME = ".httpsok"
@@ -23,6 +23,7 @@ function DomainCheck() {
 	} else {
 		${Script:UPDATE_DOMAIN} = $(cat "${Script:PROJECT_HOME}/domain.conf" -Enc UTF8)
 	}
+    ${Script:UPDATE_DOMAIN} = ${Script:UPDATE_DOMAIN} -Replace "\*", "_"
 }
 function Write-Log() {
 	Param( $Msg )
@@ -40,7 +41,7 @@ function main() {
 		Write-Log "Step 0: Run as administrator."
 		$oShell = New-Object -ComObject Shell.Application
 		$strScriptFile = $PSCommandPath
-		$strParamExec = "-Command `"Set-ExecutionPolicy -Scope Process Bypass; . $strScriptFile -WorkDir $PWD -Runas runas`" "
+		$strParamExec = "-ExecutionPolicy Bypass -Command `". $strScriptFile -WorkDir $PWD -Runas runas`" "
 		Write-Log $strParamExec
 		$oShell.ShellExecute("powershell", $strParamExec, "", "runas", 1)
 		exit
